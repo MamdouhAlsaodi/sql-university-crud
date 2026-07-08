@@ -58,6 +58,7 @@ function layout(title, body, active = '', theme = 'dark') {
     { href: '/matriculas',  label: 'Matrículas',  key: 'matriculas' },
     { href: '/schema',      label: 'ER Diagram',  key: 'schema' },
     { href: '/reports',     label: 'Relatórios',  key: 'reports' },
+    { href: '/presentation',label: '▶ Apresentação', key: 'presentation' },
   ];
   const navHtml = links
     .map((l) => `<a href="${l.href}" class="${active === l.key ? 'active' : ''}">${l.label}</a>`)
@@ -837,8 +838,32 @@ app.get('/reports', async (req, res) => {
 });
 
 /* ============================================================================
+ * /presentation — auto-generated slide deck viewer
+ * Reads SLIDES.md and serves it as a self-contained HTML presentation.
+ * Auto-plays through 15 slides in ~2 minutes (or navigate manually).
+ * ============================================================================ */
+app.get('/presentation', (req, res) => {
+  const template = fs.readFileSync(
+    path.join(__dirname, 'presentation/auto-slides.html.template'),
+    'utf-8',
+  );
+  const slides = fs.readFileSync(
+    path.join(__dirname, 'presentation/SLIDES.md'),
+    'utf-8',
+  );
+  /* Escape only backticks so the JS template literal in the HTML
+   * doesn't break. We keep ${} intact — they're part of the JS code
+   * that should evaluate at runtime. */
+  const safe = slides.replace(/\\/g, '\\\\').replace(/`/g, '\\`');
+  const html = template.replace('__MARKDOWN_CONTENT__', safe);
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(html);
+});
+
+/* ============================================================================
  * Start
  * ============================================================================ */
 app.listen(PORT, () => {
   console.log(`✓ Server listening on http://localhost:${PORT}`);
+  console.log(`✓ Presentation deck: http://localhost:${PORT}/presentation`);
 });

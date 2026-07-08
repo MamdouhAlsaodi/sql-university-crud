@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Apresentação — Sistema Universitário</title>
+  <link rel="stylesheet" href="/presentation.css">
+</head>
+<body>
+  <div class="progress"><div class="progress-bar" id="progress"></div></div>
+
+  <a href="/" class="back-home">← Voltar ao app</a>
+  <button class="theme-toggle" onclick="toggleTheme()" title="Mudar tema">☀</button>
+
+  <div class="controls">
+    <button onclick="prevSlide()" title="Anterior (←)">‹</button>
+    <button onclick="nextSlide()" title="Próximo (→)">›</button>
+    <button onclick="toggleAutoplay()" id="autoplay-btn" title="Auto-play">▶</button>
+  </div>
+
+  <div class="deck" id="deck">
+    <div class="loading">Carregando slides...</div>
+  </div>
+
+  <script>
+    /* Convert markdown to slides, render inline (no network) */
+    const MARKDOWN = `__MARKDOWN_CONTENT__`;
+
+    /* ─── Tiny Markdown renderer (just enough for our slides) ─── */
+    function renderMarkdown(text) {
+      /* Strip code fences but keep content */
+      text = text.replace(/```(\w+)?\n([\s\S]*?)```/g, (_, lang, code) => {
+        return '<pre><code>' + code.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</code></pre>';
+      });
+      /* Headers */
+      text = text.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+      text = text.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+      text = text.replace(/^# (.+)$/gm, '<h2>$1</h2>');
+      /* Bold / italic */
+      text = text.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+      text = text.replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, '<em>$1</em>');
+      /* Inline code */
+      text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
+      /* Blockquotes */
+      text = text.replace(/^&gt; (.+)$/gm, '<blockquote>$1</blockquote>');
+      /* Tables */
+      text = text.replace(/(\n\|[^\n]+\|\n)+/g, (block) => {
+        const lines = block.trim().split('\n').filter(l => l.startsWith('|'));
+        if (lines.length < 2) return block;
+        const parse = (l) => l.split('|').slice(1, -1).map(c => c.trim());
+        const header = parse(lines[0]);
+        const rows = lines.slice(2).map(parse);
+        return '<table><thead><tr>' + header.map(c => '<th>' + c + '</th>').join('') + '</tr></thead><tbody>' +
+          rows.map(r => '<tr>' + r.map(c => '<td>' + c + '</td>').join('') + '</tr>').join('') + '</tbody></table>';
+      });
+      /* Lists */
+      text = text.replace(/(?:^- .+\n?)+/gm, (block) => {
+        return '<ul>' + block.trim().split('\n').map(l => '<li>' + l.replace(/^- /, '') + '</li>').join('') + '</ul>';
+      });
+      /* Numbered lists */
+      text = text.replace(/(?:^\d+\. .+\n?)+/gm, (block) => {
+        return '<ol>' + block.trim().split('\n').map(l => '<li>' + l.replace(/^\d+\. /, '') + '</li>').join('') + '</ol>';
+      });
+      /* Horizontal rules (slide separators) */
+      /* Horizontal rules will be handled by split, not here */
+      /* Paragraphs */
+      text = text.split('\n\n').map(p => {
+        if (p.startsWith('<')) return p;
+        if (p.trim() === '') return '';
+        return '<p>' + p.replace(/\n/g, '<br>') + '</p>';
+      }).join('\n');
+      return text;
+    }
+
+    /* ─── Split into slides ─── */
+    const rawSlides = MARKDOWN.split(/\n---\n/).map(s => s.trim());
+    const slides = rawSlides.map(renderMarkdown).map((html, i) => {
+      return `<div class="slide slide-${i + 1}" id="slide-${i + 1}">
+        <span class="slide-number">${i + 1} / ${rawSlides.length}</span>
+        ${html}
+      </div>`;
+    }).join('');
+
+    document.getElementById('deck').innerHTML = `
+      <div class="toc">
+        <h4>📋 Índice (${rawSlides.length} slides)</h4>
+        ${rawSlides.map((s, i) => {
+          const title = (s.match(/^##?\s+(.+)/m) || ['', 'Slide ' + (i + 1)])[1].slice(0, 60);
+          return `<a href="#slide-${i + 1}">${i + 1}. ${title}</a>`;
+        }).join('')}
+      </div>
+      ${slides}
+    `;
+
+    /* ─── Navigation ─── */
+    let currentSlide = 1;
+    const total = rawSlides.length;
+
+    function gotoSlide(n) {
+      n = Math.max(1, Math.min(total, n));
+      const el = document.getElementById('slide-' + n);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        currentSlide = n;
+        updateProgress();
+      }
+    }
+
+    function nextSlide() { gotoSlide(currentSlide + 1); }
+    function prevSlide() { gotoSlide(currentSlide - 1); }
+
+    function updateProgress() {
+      const pct = Math.round((currentSlide / total) * 100);
+      document.getElementById('progress').style.width = pct + '%';
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+        e.preventDefault(); nextSlide();
+      } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+        e.preventDefault(); prevSlide();
+      } else if (e.key === 'Home') {
+        gotoSlide(1);
+      } else if (e.key === 'End') {
+        gotoSlide(total);
+      } else if (e.key === 'Escape') {
+        stopAutoplay();
+      }
+    });
+
+    /* ─── Auto-play ─── */
+    let autoplayTimer = null;
+    const SLIDE_DURATION = 8000; // 8s per slide (good for ~5 min total)
+
+    function toggleAutoplay() {
+      if (autoplayTimer) {
+        stopAutoplay();
+      } else {
+        startAutoplay();
+      }
+    }
+
+    function startAutoplay() {
+      const btn = document.getElementById('autoplay-btn');
+      btn.textContent = '⏸';
+      btn.title = 'Pausar (Esc)';
+      autoplayTimer = setInterval(() => {
+        if (currentSlide >= total) {
+          stopAutoplay();
+          return;
+        }
+        nextSlide();
+      }, SLIDE_DURATION);
+      updateProgress();
+    }
+
+    function stopAutoplay() {
+      const btn = document.getElementById('autoplay-btn');
+      btn.textContent = '▶';
+      btn.title = 'Auto-play';
+      if (autoplayTimer) {
+        clearInterval(autoplayTimer);
+        autoplayTimer = null;
+      }
+    }
+
+    /* ─── Theme ─── */
+    function toggleTheme() {
+      const html = document.documentElement;
+      const cur = html.getAttribute('data-theme');
+      const next = cur === 'light' ? 'dark' : 'light';
+      html.setAttribute('data-theme', next);
+      document.querySelector('.theme-toggle').textContent = next === 'light' ? '☾' : '☀';
+      document.cookie = 'theme=' + next + '; path=/; max-age=31536000';
+    }
+
+    /* Restore theme from cookie */
+    (function () {
+      const m = document.cookie.match(/theme=(\w+)/);
+      if (m && m[1] === 'light') {
+        document.documentElement.setAttribute('data-theme', 'light');
+        document.querySelector('.theme-toggle').textContent = '☾';
+      }
+    })();
+
+    /* Track scroll position */
+    let scrollTick = false;
+    document.addEventListener('scroll', () => {
+      if (scrollTick) return;
+      scrollTick = true;
+      requestAnimationFrame(() => {
+        const viewportMid = window.scrollY + window.innerHeight / 2;
+        for (let i = 1; i <= total; i++) {
+          const el = document.getElementById('slide-' + i);
+          if (!el) continue;
+          const rect = el.getBoundingClientRect();
+          const top = rect.top + window.scrollY;
+          const bot = top + rect.height;
+          if (viewportMid >= top && viewportMid < bot) {
+            currentSlide = i;
+            updateProgress();
+            break;
+          }
+        }
+        scrollTick = false;
+      });
+    });
+
+    updateProgress();
+  </script>
+</body>
+</html>
