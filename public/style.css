@@ -1,0 +1,196 @@
+/* ============================================================================
+ * Sistema Universitário — estilo
+ * Inspiração: paleta escura com accent verde-água (terminal) para
+ * combinar com o tema do curso de SI.
+ * ============================================================================ */
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0f1115;
+  --surface: #1a1d24;
+  --surface-2: #232730;
+  --border: #2d313c;
+  --text: #e6e9ef;
+  --muted: #9ba0ac;
+  --accent: #4ec9b0;
+  --accent-2: #58a6ff;
+  --warn: #f59e0b;
+  --danger: #f87171;
+  --ok: #34d399;
+}
+
+body {
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.5;
+  min-height: 100vh;
+}
+
+header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 14px 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+header h1 { font-size: 18px; font-weight: 700; color: var(--accent); }
+nav { display: flex; gap: 4px; }
+nav a {
+  padding: 6px 14px;
+  border-radius: 6px;
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 500;
+  transition: 0.15s;
+}
+nav a:hover { background: var(--surface-2); color: var(--text); }
+nav a.active { background: var(--surface-2); color: var(--accent); }
+
+main {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 28px 24px 60px;
+}
+
+footer {
+  text-align: center;
+  padding: 20px;
+  color: var(--muted);
+  font-size: 12px;
+  border-top: 1px solid var(--border);
+  margin-top: 40px;
+}
+
+h2 { font-size: 22px; margin-bottom: 12px; }
+h3 { font-size: 16px; margin: 24px 0 10px; color: var(--muted); }
+
+.hint { color: var(--muted); font-size: 13px; margin-bottom: 14px; }
+.hint a { color: var(--accent); }
+
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  margin: 18px 0 24px;
+}
+.kpi {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 18px;
+  text-align: center;
+}
+.kpi-n { font-size: 28px; font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; }
+.kpi-l { font-size: 12px; color: var(--muted); margin-top: 4px; }
+.kpi.ok .kpi-n { color: var(--ok); }
+.kpi.warn .kpi-n { color: var(--warn); }
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  font-size: 13px;
+}
+th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); }
+th { background: var(--surface-2); color: var(--muted); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
+tr:last-child td { border-bottom: 0; }
+tr:hover td { background: rgba(78, 201, 176, 0.04); }
+code { font-family: ui-monospace, "JetBrains Mono", "Fira Code", monospace; font-size: 12px; color: var(--accent); }
+em { color: var(--muted); }
+
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+.badge.cursando  { background: rgba(88,166,255,0.15); color: var(--accent-2); }
+.badge.aprovado  { background: rgba(52,211,153,0.15); color: var(--ok); }
+.badge.reprovado { background: rgba(248,113,113,0.15); color: var(--danger); }
+.badge.cancelado { background: rgba(155,160,172,0.15); color: var(--muted); }
+
+.form {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 20px;
+  display: grid;
+  gap: 12px;
+  max-width: 480px;
+  margin-top: 8px;
+}
+.form label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); }
+.form label small { font-weight: 400; opacity: 0.7; }
+.form input, .form select {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: inherit;
+}
+.form input:focus, .form select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.form button {
+  background: var(--accent);
+  color: var(--bg);
+  border: 0;
+  padding: 10px 16px;
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  margin-top: 4px;
+}
+.form button:hover { background: #5fd9c0; }
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  text-decoration: none;
+  color: var(--text);
+  transition: 0.15s;
+}
+.card:hover { border-color: var(--accent); transform: translateY(-2px); }
+.card strong { color: var(--accent); font-size: 14px; }
+.card span { color: var(--muted); font-size: 12px; }
+
+details { margin: 12px 0; }
+details summary { cursor: pointer; color: var(--muted); font-size: 13px; }
+pre.sql {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px;
+  margin-top: 8px;
+  overflow-x: auto;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--accent);
+}
+pre { font-family: ui-monospace, "JetBrains Mono", monospace; }

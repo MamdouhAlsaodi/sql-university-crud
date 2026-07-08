@@ -1,0 +1,17 @@
+{
+  "name": "sql-university-crud",
+  "version": "1.0.0",
+  "description": "Exercício Prático — Criação e Manipulação de Tabelas SQL (Sistema Universitário)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "db:create": "psql -U $PGUSER -d $PGDATABASE -f sql/01_create_schema.sql",
+    "db:seed": "psql -U $PGUSER -d $PGDATABASE -f sql/02_seed_data.sql",
+    "db:reports": "psql -U $PGUSER -d $PGDATABASE -f sql/03_query_reports.sql"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "pg": "^8.13.0"
+  }
+}
