@@ -121,19 +121,19 @@ relatórios.
 
 ---
 
-## 7. Conexão ODBC / pg
+## 7. Conexão ODBC / mysql2
 
 | Aspecto | Valor |
 |---|---|
-| Driver | `pg` (libpq nativo) |
-| Porta | 5432 |
+| Driver | `mysql2` (libmysqlclient nativo) |
+| Porta | 3306 |
 | Pool | 10 conexões |
-| Credenciais | via env vars (PGHOST, PGPORT, PGUSER, PGPASSWORD, PGDATABASE) |
-| String ODBC equivalente | `Driver={PostgreSQL Unicode};Server=...;Port=5432;Database=...;Uid=...;Pwd=...;` |
+| Credenciais | via env vars (MYSQL_HOST, MYSQL_PORT, MYSQL_USER, MYSQL_PASSWORD, MYSQL_DATABASE) |
+| String ODBC equivalente | `Driver={MySQL ODBC 8.0 Unicode Driver};Server=...;Port=3306;Database=...;User=...;Password=...;` |
 
-> **Decisão de design**: o pacote `pg` (node-postgres) é o driver SQL
-> padrão no Node.js e expõe a mesma API que um driver ODBC — ambos
-> usam o protocolo nativo do Postgres. A string de conexão ODBC está
+> **Decisão de design**: o pacote `mysql2` é o driver Node mais usado
+> para MySQL e expõe a mesma API que um driver ODBC — ambos usam o
+> protocolo nativo do MySQL. A string de conexão ODBC está
 > documentada no README para o caso de o avaliador preferir essa
 > convenção.
 

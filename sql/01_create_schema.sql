@@ -1,5 +1,5 @@
 -- ============================================================================
--- Script 01: Criação do schema (CREATE TABLE)
+-- Script 01: Criação do schema (MySQL 8.0+)
 -- ============================================================================
 -- Domínio: Sistema Universitário
 -- Tabelas: 4
@@ -8,93 +8,106 @@
 --   - Aluno
 --   - Matricula (FK → Aluno + Disciplina, N:N via tabela ponte)
 --
--- Decisões:
---   - UUIDs (cuid()) para PK — prática universitária padrão seria INT
---     auto_increment, mas cuid() evita expor o volume de registros.
---   - Timestamps created_at / updated_at em todas as tabelas.
---   - ON DELETE CASCADE em todas as FKs — quando o pai some, o filho some.
---   - UNIQUE constraints onde a regra de negócio exige (ex: email único).
+-- Decisões MySQL-específicas:
+--   - AUTO_INCREMENT em vez de cuid() — padrão acadêmico MySQL.
+--   - ENGINE=InnoDB (transações + FK enforcement).
+--   - CHARSET=utf8mb4 para suporte completo a Unicode (incl. emoji).
+--   - CHECK constraints (MySQL 8.0.16+ enforça-as; versões anteriores
+--     as ignoram silenciosamente).
+--   - ON DELETE CASCADE em todas as FKs de conteúdo.
 -- ============================================================================
 
-DROP TABLE IF EXISTS "Matricula" CASCADE;
-DROP TABLE IF EXISTS "Aluno" CASCADE;
-DROP TABLE IF EXISTS "Disciplina" CASCADE;
-DROP TABLE IF EXISTS "Curso" CASCADE;
+SET FOREIGN_KEY_CHECKS = 0;
+TRUNCATE TABLE Matricula;
+TRUNCATE TABLE Aluno;
+TRUNCATE TABLE Disciplina;
+TRUNCATE TABLE Curso;
+SET FOREIGN_KEY_CHECKS = 1;
 
 -- ----------------------------------------------------------------------------
 -- 1. Curso
 -- ----------------------------------------------------------------------------
-CREATE TABLE "Curso" (
-    id          TEXT PRIMARY KEY,
-    nome        TEXT NOT NULL,
-    duracao     INTEGER NOT NULL CHECK (duracao > 0),   -- semestres
-    created_at  TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at  TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
+CREATE TABLE Curso (
+    id          INT AUTO_INCREMENT PRIMARY KEY,
+    nome        VARCHAR(120) NOT NULL,
+    duracao     INT NOT NULL,
+    created_at  DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    updated_at  DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+    CONSTRAINT Curso_duracao_chk CHECK (duracao > 0)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------------------------------------------
 -- 2. Disciplina (1 Curso → N Disciplinas)
 -- ----------------------------------------------------------------------------
-CREATE TABLE "Disciplina" (
-    id          TEXT PRIMARY KEY,
-    curso_id    TEXT NOT NULL,
-    nome        TEXT NOT NULL,
-    creditos    INTEGER NOT NULL CHECK (creditos BETWEEN 1 AND 12),
-    carga_horaria INTEGER NOT NULL CHECK (carga_horaria > 0),
-    created_at  TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at  TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT "Disciplina_curso_id_fkey"
-        FOREIGN KEY ("curso_id") REFERENCES "Curso"(id)
+CREATE TABLE Disciplina (
+    id            INT AUTO_INCREMENT PRIMARY KEY,
+    curso_id      INT NOT NULL,
+    nome          VARCHAR(120) NOT NULL,
+    creditos      INT NOT NULL,
+    carga_horaria INT NOT NULL,
+    created_at    DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    updated_at    DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+    CONSTRAINT Disciplina_curso_id_fkey
+        FOREIGN KEY (curso_id) REFERENCES Curso(id)
         ON DELETE CASCADE
-        ON UPDATE CASCADE
-);
+        ON UPDATE CASCADE,
+    CONSTRAINT Disciplina_creditos_chk CHECK (creditos BETWEEN 1 AND 12),
+    CONSTRAINT Disciplina_carga_horaria_chk CHECK (carga_horaria > 0)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE INDEX "Disciplina_curso_id_idx" ON "Disciplina"("curso_id");
+CREATE INDEX Disciplina_curso_id_idx ON Disciplina(curso_id);
 
 -- ----------------------------------------------------------------------------
 -- 3. Aluno
 -- ----------------------------------------------------------------------------
-CREATE TABLE "Aluno" (
-    id          TEXT PRIMARY KEY,
-    nome        TEXT NOT NULL,
-    email       TEXT NOT NULL UNIQUE,
-    matricula  TEXT NOT NULL UNIQUE,                    -- número de matrícula (ex: 2024001)
-    curso_id    TEXT,                                    -- pode ser NULL (aluno ainda não escolheu)
-    created_at  TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at  TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT "Aluno_curso_id_fkey"
-        FOREIGN KEY ("curso_id") REFERENCES "Curso"(id)
+CREATE TABLE Aluno (
+    id          INT AUTO_INCREMENT PRIMARY KEY,
+    nome        VARCHAR(120) NOT NULL,
+    email       VARCHAR(180) NOT NULL,
+    matricula   VARCHAR(20)  NOT NULL,
+    curso_id    INT,
+    created_at  DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    updated_at  DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+    CONSTRAINT Aluno_email_uq     UNIQUE (email),
+    CONSTRAINT Aluno_matricula_uq UNIQUE (matricula),
+    CONSTRAINT Aluno_curso_id_fkey
+        FOREIGN KEY (curso_id) REFERENCES Curso(id)
         ON DELETE SET NULL
         ON UPDATE CASCADE
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE INDEX "Aluno_curso_id_idx" ON "Aluno"("curso_id");
-CREATE INDEX "Aluno_email_idx" ON "Aluno"("email");
+CREATE INDEX Aluno_curso_id_idx ON Aluno(curso_id);
+CREATE INDEX Aluno_email_idx    ON Aluno(email);
 
 -- ----------------------------------------------------------------------------
 -- 4. Matricula (N:N entre Aluno e Disciplina)
 -- ----------------------------------------------------------------------------
-CREATE TABLE "Matricula" (
-    id            TEXT PRIMARY KEY,
-    aluno_id      TEXT NOT NULL,
-    disciplina_id TEXT NOT NULL,
-    nota          DECIMAL(4, 2) CHECK (nota IS NULL OR (nota >= 0 AND nota <= 10)),
-    status        TEXT NOT NULL DEFAULT 'CURSANDO'
-                  CHECK (status IN ('CURSANDO', 'APROVADO', 'REPROVADO', 'CANCELADO')),
-    created_at    TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at    TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT "Matricula_aluno_id_fkey"
-        FOREIGN KEY ("aluno_id") REFERENCES "Aluno"(id)
+CREATE TABLE Matricula (
+    id            INT AUTO_INCREMENT PRIMARY KEY,
+    aluno_id      INT NOT NULL,
+    disciplina_id INT NOT NULL,
+    nota          DECIMAL(4, 2),
+    status        ENUM('CURSANDO','APROVADO','REPROVADO','CANCELADO') NOT NULL DEFAULT 'CURSANDO',
+    created_at    DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    updated_at    DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+    CONSTRAINT Matricula_aluno_id_fkey
+        FOREIGN KEY (aluno_id) REFERENCES Aluno(id)
         ON DELETE CASCADE
         ON UPDATE CASCADE,
-    CONSTRAINT "Matricula_disciplina_id_fkey"
-        FOREIGN KEY ("disciplina_id") REFERENCES "Disciplina"(id)
+    CONSTRAINT Matricula_disciplina_id_fkey
+        FOREIGN KEY (disciplina_id) REFERENCES Disciplina(id)
         ON DELETE CASCADE
         ON UPDATE CASCADE,
-    -- Um aluno não pode se matricular duas vezes na mesma disciplina
-    CONSTRAINT "Matricula_unique" UNIQUE ("aluno_id", "disciplina_id")
-);
+    CONSTRAINT Matricula_aluno_disciplina_uq UNIQUE (aluno_id, disciplina_id),
+    CONSTRAINT Matricula_nota_chk CHECK (nota IS NULL OR (nota >= 0 AND nota <= 10))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE INDEX "Matricula_aluno_id_idx" ON "Matricula"("aluno_id");
-CREATE INDEX "Matricula_disciplina_id_idx" ON "Matricula"("disciplina_id");
-CREATE INDEX "Matricula_status_idx" ON "Matricula"("status");
+CREATE INDEX Matricula_aluno_id_idx      ON Matricula(aluno_id);
+CREATE INDEX Matricula_disciplina_id_idx ON Matricula(disciplina_id);
+CREATE INDEX Matricula_status_idx        ON Matricula(status);
+
+-- Verificação rápida após execução:
+-- SELECT (SELECT COUNT(*) FROM Curso)      AS cursos,
+--        (SELECT COUNT(*) FROM Disciplina) AS disciplinas,
+--        (SELECT COUNT(*) FROM Aluno)      AS alunos,
+--        (SELECT COUNT(*) FROM Matricula)  AS matriculas;

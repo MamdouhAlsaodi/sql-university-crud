@@ -1,80 +1,152 @@
 -- ============================================================================
--- Script 02: Inserção de dados (INSERT)
+-- Script 02: Inserção de dados (MySQL 8.0+)
 -- ============================================================================
 -- Ordem: respeitar dependências (Curso → Disciplina → Aluno → Matricula).
--- IDs fixos (TEXT) para que possamos referenciar diretamente.
+-- Em MySQL usamos AUTO_INCREMENT, então os IDs são gerados
+-- automaticamente. Para referenciar nas tabelas filhas usamos
+-- subqueries: (SELECT id FROM Curso WHERE nome = '...')
+-- Isso mantém o script idempotente e legível.
 -- ============================================================================
 
 -- ----------------------------------------------------------------------------
 -- 3 Cursos
 -- ----------------------------------------------------------------------------
-INSERT INTO "Curso" (id, nome, duracao) VALUES
-    ('curso-si',  'Sistemas de Informação', 8),
-    ('curso-cc',  'Ciência da Computação', 8),
-    ('curso-adm', 'Administração',          8);
+INSERT INTO Curso (nome, duracao) VALUES
+    ('Sistemas de Informação',     8),
+    ('Ciência da Computação',      8),
+    ('Administração',              8);
 
 -- ----------------------------------------------------------------------------
 -- 9 Disciplinas (3 por curso)
 -- ----------------------------------------------------------------------------
-INSERT INTO "Disciplina" (id, curso_id, nome, creditos, carga_horaria) VALUES
+INSERT INTO Disciplina (curso_id, nome, creditos, carga_horaria) VALUES
     -- SI
-    ('disc-si-1', 'curso-si', 'Algoritmos e Estruturas de Dados', 4, 80),
-    ('disc-si-2', 'curso-si', 'Banco de Dados',                   4, 80),
-    ('disc-si-3', 'curso-si', 'Programação Web',                   4, 80),
+    ((SELECT id FROM Curso WHERE nome='Sistemas de Informação'),
+     'Algoritmos e Estruturas de Dados', 4, 80),
+    ((SELECT id FROM Curso WHERE nome='Sistemas de Informação'),
+     'Banco de Dados',                   4, 80),
+    ((SELECT id FROM Curso WHERE nome='Sistemas de Informação'),
+     'Programação Web',                   4, 80),
     -- CC
-    ('disc-cc-1', 'curso-cc', 'Algoritmos e Estruturas de Dados', 4, 80),
-    ('disc-cc-2', 'curso-cc', 'Cálculo I',                         4, 80),
-    ('disc-cc-3', 'curso-cc', 'Inteligência Artificial',           4, 80),
+    ((SELECT id FROM Curso WHERE nome='Ciência da Computação'),
+     'Algoritmos e Estruturas de Dados', 4, 80),
+    ((SELECT id FROM Curso WHERE nome='Ciência da Computação'),
+     'Cálculo I',                         4, 80),
+    ((SELECT id FROM Curso WHERE nome='Ciência da Computação'),
+     'Inteligência Artificial',           4, 80),
     -- ADM
-    ('disc-adm-1', 'curso-adm', 'Contabilidade Geral',            4, 80),
-    ('disc-adm-2', 'curso-adm', 'Administração Financeira',       4, 80),
-    ('disc-adm-3', 'curso-adm', 'Marketing',                       4, 80);
+    ((SELECT id FROM Curso WHERE nome='Administração'),
+     'Contabilidade Geral',               4, 80),
+    ((SELECT id FROM Curso WHERE nome='Administração'),
+     'Administração Financeira',          4, 80),
+    ((SELECT id FROM Curso WHERE nome='Administração'),
+     'Marketing',                         4, 80);
 
 -- ----------------------------------------------------------------------------
 -- 10 Alunos (distribuídos entre os cursos, 1 sem curso)
 -- ----------------------------------------------------------------------------
-INSERT INTO "Aluno" (id, nome, email, matricula, curso_id) VALUES
-    ('aluno-001', 'Ana Silva',     'ana.silva@uni.edu',     '2024001', 'curso-si'),
-    ('aluno-002', 'Bruno Costa',   'bruno.costa@uni.edu',   '2024002', 'curso-si'),
-    ('aluno-003', 'Carla Souza',   'carla.souza@uni.edu',   '2024003', 'curso-si'),
-    ('aluno-004', 'Diego Lima',    'diego.lima@uni.edu',    '2024004', 'curso-si'),
-    ('aluno-005', 'Eduarda Alves', 'eduarda.alves@uni.edu', '2024005', 'curso-cc'),
-    ('aluno-006', 'Felipe Rocha',  'felipe.rocha@uni.edu',  '2024006', 'curso-cc'),
-    ('aluno-007', 'Gabriela Melo', 'gabriela.melo@uni.edu', '2024007', 'curso-cc'),
-    ('aluno-008', 'Hugo Barros',   'hugo.barros@uni.edu',   '2024008', 'curso-adm'),
-    ('aluno-009', 'Isabela Reis',  'isabela.reis@uni.edu',  '2024009', 'curso-adm'),
-    ('aluno-010', 'João Pereira',  'joao.pereira@uni.edu',  '2024010', NULL);
+INSERT INTO Aluno (nome, email, matricula, curso_id) VALUES
+    ('Ana Silva',     'ana.silva@uni.edu',     '2024001',
+     (SELECT id FROM Curso WHERE nome='Sistemas de Informação')),
+    ('Bruno Costa',   'bruno.costa@uni.edu',   '2024002',
+     (SELECT id FROM Curso WHERE nome='Sistemas de Informação')),
+    ('Carla Souza',   'carla.souza@uni.edu',   '2024003',
+     (SELECT id FROM Curso WHERE nome='Sistemas de Informação')),
+    ('Diego Lima',    'diego.lima@uni.edu',    '2024004',
+     (SELECT id FROM Curso WHERE nome='Sistemas de Informação')),
+    ('Eduarda Alves', 'eduarda.alves@uni.edu', '2024005',
+     (SELECT id FROM Curso WHERE nome='Ciência da Computação')),
+    ('Felipe Rocha',  'felipe.rocha@uni.edu',  '2024006',
+     (SELECT id FROM Curso WHERE nome='Ciência da Computação')),
+    ('Gabriela Melo', 'gabriela.melo@uni.edu', '2024007',
+     (SELECT id FROM Curso WHERE nome='Ciência da Computação')),
+    ('Hugo Barros',   'hugo.barros@uni.edu',   '2024008',
+     (SELECT id FROM Curso WHERE nome='Administração')),
+    ('Isabela Reis',  'isabela.reis@uni.edu',  '2024009',
+     (SELECT id FROM Curso WHERE nome='Administração')),
+    ('João Pereira',  'joao.pereira@uni.edu',  '2024010', NULL);
 
 -- ----------------------------------------------------------------------------
--- Matrículas (cada aluno em 2-3 disciplinas com notas variadas)
+-- Matrículas — 20 inserts
+-- (Os IDs de aluno e disciplina são resolvidos por subquery.
+--  Mais verboso que hard-coding de IDs, mas mais robusto a re-runs.)
 -- ----------------------------------------------------------------------------
-INSERT INTO "Matricula" (id, aluno_id, disciplina_id, nota, status) VALUES
+INSERT INTO Matricula (aluno_id, disciplina_id, nota, status) VALUES
     -- Ana (SI) — APROVADA em tudo
-    ('mat-001', 'aluno-001', 'disc-si-1', 8.50, 'APROVADO'),
-    ('mat-002', 'aluno-001', 'disc-si-2', 9.00, 'APROVADO'),
-    ('mat-003', 'aluno-001', 'disc-si-3', 7.50, 'APROVADO'),
+    ((SELECT id FROM Aluno WHERE matricula='2024001'),
+     (SELECT id FROM Disciplina WHERE nome='Algoritmos e Estruturas de Dados' AND curso_id=(SELECT id FROM Curso WHERE nome='Sistemas de Informação')),
+     8.50, 'APROVADO'),
+    ((SELECT id FROM Aluno WHERE matricula='2024001'),
+     (SELECT id FROM Disciplina WHERE nome='Banco de Dados'),
+     9.00, 'APROVADO'),
+    ((SELECT id FROM Aluno WHERE matricula='2024001'),
+     (SELECT id FROM Disciplina WHERE nome='Programação Web'),
+     7.50, 'APROVADO'),
     -- Bruno (SI) — mista
-    ('mat-004', 'aluno-002', 'disc-si-1', 5.50, 'APROVADO'),
-    ('mat-005', 'aluno-002', 'disc-si-2', 4.00, 'REPROVADO'),
-    ('mat-006', 'aluno-002', 'disc-si-3', NULL, 'CURSANDO'),
+    ((SELECT id FROM Aluno WHERE matricula='2024002'),
+     (SELECT id FROM Disciplina WHERE nome='Algoritmos e Estruturas de Dados' AND curso_id=(SELECT id FROM Curso WHERE nome='Sistemas de Informação')),
+     5.50, 'APROVADO'),
+    ((SELECT id FROM Aluno WHERE matricula='2024002'),
+     (SELECT id FROM Disciplina WHERE nome='Banco de Dados'),
+     4.00, 'REPROVADO'),
+    ((SELECT id FROM Aluno WHERE matricula='2024002'),
+     (SELECT id FROM Disciplina WHERE nome='Programação Web'),
+     NULL, 'CURSANDO'),
     -- Carla (SI)
-    ('mat-007', 'aluno-003', 'disc-si-1', 9.75, 'APROVADO'),
-    ('mat-008', 'aluno-003', 'disc-si-2', 8.00, 'APROVADO'),
-    -- Diego (SI) — sem matrículas (caso edge)
-    -- Eduardo (CC)
-    ('mat-009', 'aluno-005', 'disc-cc-1', 7.00, 'APROVADO'),
-    ('mat-010', 'aluno-005', 'disc-cc-2', 6.50, 'APROVADO'),
-    ('mat-011', 'aluno-005', 'disc-cc-3', 8.25, 'APROVADO'),
+    ((SELECT id FROM Aluno WHERE matricula='2024003'),
+     (SELECT id FROM Disciplina WHERE nome='Algoritmos e Estruturas de Dados' AND curso_id=(SELECT id FROM Curso WHERE nome='Sistemas de Informação')),
+     9.75, 'APROVADO'),
+    ((SELECT id FROM Aluno WHERE matricula='2024003'),
+     (SELECT id FROM Disciplina WHERE nome='Banco de Dados'),
+     8.00, 'APROVADO'),
+    -- Diego (SI) — sem matrículas
+    -- Eduarda (CC)
+    ((SELECT id FROM Aluno WHERE matricula='2024005'),
+     (SELECT id FROM Disciplina WHERE nome='Algoritmos e Estruturas de Dados' AND curso_id=(SELECT id FROM Curso WHERE nome='Ciência da Computação')),
+     7.00, 'APROVADO'),
+    ((SELECT id FROM Aluno WHERE matricula='2024005'),
+     (SELECT id FROM Disciplina WHERE nome='Cálculo I'),
+     6.50, 'APROVADO'),
+    ((SELECT id FROM Aluno WHERE matricula='2024005'),
+     (SELECT id FROM Disciplina WHERE nome='Inteligência Artificial'),
+     8.25, 'APROVADO'),
     -- Felipe (CC)
-    ('mat-012', 'aluno-006', 'disc-cc-1', 3.00, 'REPROVADO'),
-    ('mat-013', 'aluno-006', 'disc-cc-2', 7.50, 'APROVADO'),
+    ((SELECT id FROM Aluno WHERE matricula='2024006'),
+     (SELECT id FROM Disciplina WHERE nome='Algoritmos e Estruturas de Dados' AND curso_id=(SELECT id FROM Curso WHERE nome='Ciência da Computação')),
+     3.00, 'REPROVADO'),
+    ((SELECT id FROM Aluno WHERE matricula='2024006'),
+     (SELECT id FROM Disciplina WHERE nome='Cálculo I'),
+     7.50, 'APROVADO'),
     -- Gabriela (CC)
-    ('mat-014', 'aluno-007', 'disc-cc-2', 9.50, 'APROVADO'),
-    ('mat-015', 'aluno-007', 'disc-cc-3', NULL, 'CURSANDO'),
+    ((SELECT id FROM Aluno WHERE matricula='2024007'),
+     (SELECT id FROM Disciplina WHERE nome='Cálculo I'),
+     9.50, 'APROVADO'),
+    ((SELECT id FROM Aluno WHERE matricula='2024007'),
+     (SELECT id FROM Disciplina WHERE nome='Inteligência Artificial'),
+     NULL, 'CURSANDO'),
     -- Hugo (ADM)
-    ('mat-016', 'aluno-008', 'disc-adm-1', 6.00, 'APROVADO'),
-    ('mat-017', 'aluno-008', 'disc-adm-2', 7.00, 'APROVADO'),
+    ((SELECT id FROM Aluno WHERE matricula='2024008'),
+     (SELECT id FROM Disciplina WHERE nome='Contabilidade Geral'),
+     6.00, 'APROVADO'),
+    ((SELECT id FROM Aluno WHERE matricula='2024008'),
+     (SELECT id FROM Disciplina WHERE nome='Administração Financeira'),
+     7.00, 'APROVADO'),
     -- Isabela (ADM)
-    ('mat-018', 'aluno-009', 'disc-adm-1', 8.00, 'APROVADO'),
-    ('mat-019', 'aluno-009', 'disc-adm-3', 9.00, 'APROVADO'),
-    ('mat-020', 'aluno-009', 'disc-adm-2', NULL, 'CANCELADO');
+    ((SELECT id FROM Aluno WHERE matricula='2024009'),
+     (SELECT id FROM Disciplina WHERE nome='Contabilidade Geral'),
+     8.00, 'APROVADO'),
+    ((SELECT id FROM Aluno WHERE matricula='2024009'),
+     (SELECT id FROM Disciplina WHERE nome='Marketing'),
+     9.00, 'APROVADO'),
+    ((SELECT id FROM Aluno WHERE matricula='2024009'),
+     (SELECT id FROM Disciplina WHERE nome='Administração Financeira'),
+     NULL, 'CANCELADO');
+
+-- ----------------------------------------------------------------------------
+-- Sanity check final
+-- ----------------------------------------------------------------------------
+SELECT
+    (SELECT COUNT(*) FROM Curso)      AS cursos,
+    (SELECT COUNT(*) FROM Disciplina) AS disciplinas,
+    (SELECT COUNT(*) FROM Aluno)      AS alunos,
+    (SELECT COUNT(*) FROM Matricula)  AS matriculas;
