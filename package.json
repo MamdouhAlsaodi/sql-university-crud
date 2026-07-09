@@ -1,17 +1,19 @@
 {
   "name": "sql-university-crud",
   "version": "1.0.0",
-  "description": "Exerc\u00edcio Pr\u00e1tico \u2014 Cria\u00e7\u00e3o e Manipula\u00e7\u00e3o de Tabelas SQL (Sistema Universit\u00e1rio)",
+  "description": "Exercício Prático — Criação e Manipulação de Tabelas SQL (Sistema Universitário)",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
-    "db:create": "mysql -u $MYSQL_USER -p$MYSQL_PASSWORD $MYSQL_DATABASE < sql/01_create_schema.sql",
-    "db:seed": "mysql -u $MYSQL_USER -p$MYSQL_PASSWORD $MYSQL_DATABASE < sql/02_seed_data.sql",
-    "db:reports": "mysql -u $MYSQL_USER -p$MYSQL_PASSWORD $MYSQL_DATABASE < sql/03_query_reports.sql"
+    "db:create": "bash scripts/db-create.sh",
+    "db:seed": "bash scripts/db-seed.sh",
+    "db:reports": "bash scripts/db-reports.sh",
+    "db:reset": "bash scripts/db-reset.sh"
   },
   "dependencies": {
     "cookie-parser": "^1.4.6",
+    "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "mysql2": "^3.11.0"
   }
