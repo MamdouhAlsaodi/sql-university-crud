@@ -19,6 +19,7 @@
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
+require('dotenv').config();
 const cookieParser = require('cookie-parser');
 const { query, one, many } = require('./db');
 

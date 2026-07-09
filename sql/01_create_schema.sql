@@ -18,10 +18,10 @@
 -- ============================================================================
 
 SET FOREIGN_KEY_CHECKS = 0;
-TRUNCATE TABLE Matricula;
-TRUNCATE TABLE Aluno;
-TRUNCATE TABLE Disciplina;
-TRUNCATE TABLE Curso;
+DROP TABLE IF EXISTS Matricula;
+DROP TABLE IF EXISTS Aluno;
+DROP TABLE IF EXISTS Disciplina;
+DROP TABLE IF EXISTS Curso;
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- ----------------------------------------------------------------------------

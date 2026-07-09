@@ -13,6 +13,7 @@
  *     direto na 3306 é mais simples e suficiente.
  *   - A string de conexão ODBC equivalente está documentada no README.
  */
+require('dotenv').config();
 const mysql = require('mysql2/promise');
 
 const pool = mysql.createPool({
